@@ -1,6 +1,9 @@
 import pygame
-from constants import WHITE, FAMILY_FONT_NAME
+from constants import (
+    WHITE, FAMILY_FONT_NAME, SCREEN_RESOLUTION, PROJECTIL_IMG_PATH
+)
 
+PROJECTIL_IMG = pygame.image.load(PROJECTIL_IMG_PATH)
 
 def draw_text(surf, msg, size, color, x_text, y_text):
     """ Function to make easyer to draw text
@@ -57,13 +60,24 @@ class Basic_button:
                   self.pos[0]+self.size[0]/2, self.pos[1]+self.size[1]/2)
 
 
-class Player:
+class BaseObj:
     def __init__(self, pos, size, speed, image):
         self.pos = pos
         self.speed = speed
         self.size = size
         self.image = image
 
+    def draw(self, screen):
+        screen.blit(self.image, self.pos)
+
+
+class Player(BaseObj):
+    def __init__(self, pos, size, speed, image):
+        self.projectils = []
+        self.projectil_cooldown = 0
+        self.projectil_cooldown_max = 20
+        super().__init__(pos, size, speed, image)
+    
     def collision(self, other):
         if (
             self.pos[0] < (other.pos[0]+other.size[0]) and
@@ -74,9 +88,68 @@ class Player:
             return False
         return True
 
-    def draw(self, screen):
-        screen.blit(self.image, self.pos)
-
     def move(self):
         self.pos = [self.pos[0] + self.speed[0], self.pos[1] + self.speed[1]]
+    
+    def move_projectils(self):
+        for i,p in enumerate(self.projectils):
+            p.move()
+            if p.pos[1] == 0:
+                self.projectils.pop(i)
 
+    def draw_projectils(self, screen):
+        [p.draw(screen) for p in self.projectils]
+    
+    def collision_projectils(self, other):
+        for p in self.projectils:
+            if (
+                p.pos[0] < (other.pos[0]+other.size[0]) and
+                (p.pos[0]+p.size[0]) > other.pos[0] and
+                p.pos[1] < (other.pos[1]+other.size[1]) and
+                (p.pos[1]+p.size[1]) > other.pos[1]
+            ):
+                return True
+            return False
+
+    def shoot(self):
+        if self.projectil_cooldown <= 0:
+            self.projectils.append(
+                Projectil([self.pos[0]+ self.size[0]/2, self.pos[1]],
+                    self.size, self.speed, PROJECTIL_IMG, -1
+                )
+            )
+
+
+
+class Enemy(BaseObj):
+    def __init__(self, pos, size, speed, image):
+        self.move_new_line = False
+        self.dir = 1
+        self.move_acc = 0
+        self.top_move_acc = 20
+        super().__init__(pos, size, speed, image)
+
+    def new_line(self, dir):
+        self.move_new_line = True
+        self.dir = dir
+
+    def move(self):
+        if self.move_acc > self.top_move_acc:
+            if self.move_new_line:
+                self.pos = [self.pos[0], self.pos[1] + self.size[1]]
+                self.move_acc = self.top_move_acc /2
+                self.move_new_line = False
+            else:
+                self.pos = [self.pos[0] + 40 * self.dir, self.pos[1]]
+                self.move_acc = 0
+        else:
+            self.move_acc += 1
+        
+
+class Projectil(BaseObj):
+    def __init__(self, pos, size, speed, image, dir):
+        self.dir = dir
+        super().__init__(pos, size, speed, image)
+        
+    def move(self):
+        self.pos = [self.pos[0], self.pos[1] + (5 * self.dir)]

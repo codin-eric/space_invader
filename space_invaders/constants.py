@@ -10,3 +10,4 @@ GREEN = (0, 200, 0)
 FAMILY_FONT_NAME = 'freesansbold.ttf'
 PLAYER_IMAGE_PATH = 'images/player.png'
 ENEMY_IMAGE_PATH = 'images/enemy.png'
+PROJECTIL_IMG_PATH = 'images/projectil.png'
